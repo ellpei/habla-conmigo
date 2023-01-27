@@ -1,5 +1,8 @@
 package com.habla.domain.gameplay;
 
+import lombok.Getter;
+
+@Getter
 public enum GameStatus {
-    CREATED, PLAYING, FINISHED
+    CREATED, READY, PLAYING, FINISHED
 }

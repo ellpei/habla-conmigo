@@ -1,5 +1,10 @@
 package com.habla.domain.language;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class FlashCard {
     private Vocable vocable;
     private boolean player1Completed;
@@ -16,18 +21,6 @@ public class FlashCard {
     public Vocable displayVocable() {
         this.timesDisplayed++;
         return vocable;
-    }
-
-    public int getTimesDisplayed() {
-        return this.timesDisplayed;
-    }
-
-    public void setPlayer1Completed() {
-        this.player1Completed = true;
-    }
-
-    public void setPlayer2Completed() {
-        this.player2Completed = true;
     }
 
     public boolean isComplete() {
