@@ -169,6 +169,36 @@ class GameControllerLifecycleTest {
     }
 
     @Test
+    void joinSessionMissingNativeLanguage() {
+        final UserDTO createSessionRequestBody = new UserDTO(TEST_USERNAME, NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
+        final ResponseEntity<String> createResponse = restTemplate.postForEntity(basePath + port + CREATE_SESSION, createSessionRequestBody, String.class);
+        final String sessionId = createResponse.getBody();
+        final UserDTO joinSessionRequestBody = new UserDTO(TEST_USERNAME2, null);
+
+        final ResponseEntity<Object> res = restTemplate.postForEntity(
+                basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody,
+                Object.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void joinSessionAlreadyFull() {
+        final UserDTO createSessionRequestBody = new UserDTO(TEST_USERNAME, NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
+        final ResponseEntity<String> createResponse = restTemplate.postForEntity(basePath + port + CREATE_SESSION, createSessionRequestBody, String.class);
+        final String sessionId = createResponse.getBody();
+        final UserDTO joinSessionRequestBody = new UserDTO(TEST_USERNAME2, "Spanish");
+        restTemplate.postForEntity(basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody, Object.class);
+        final UserDTO joinSessionRequestBody2 = new UserDTO("another person", "Spanish");
+
+        final ResponseEntity<String> res = restTemplate.postForEntity(
+                basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody2, String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(res.getBody()).isEqualTo("Session already full, cannot join");
+    }
+
+    @Test
     void startGame() {
     }
 

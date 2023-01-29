@@ -10,7 +10,7 @@ import com.habla.domain.util.InputHelper;
 import org.apache.commons.text.RandomStringGenerator;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -59,14 +59,11 @@ public class SessionHandler {
 
     public GameSessionDTO tryJoinSession(UserDTO user, String sessionId) throws SessionNotFoundException {
         Player player = new Player(user.getUsername(), InputHelper.parseLanguage(user.getNativeLanguage()));
-        GameSession session = getSession(sessionId);
-        return session.updateWithPlayer2(player).toDto();
+        return getSession(sessionId).tryJoinSession(player).toDto();
     }
 
     public GameSessionDTO startGame(String sessionId) throws SessionNotFoundException {
-        GameSession session = getSession(sessionId);
-        session.startGame();
-        return session.toDto();
+        return getSession(sessionId).startGame().toDto();
     }
 
     private String generateSessionId() {

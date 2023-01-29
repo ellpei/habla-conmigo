@@ -1,9 +1,9 @@
 package com.habla.domain.gameplay;
 
+import com.habla.exception.SessionAlreadyFullException;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.DictionaryLoaderService;
 import com.habla.domain.language.FlashCard;
-import lombok.Data;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -37,8 +37,11 @@ public class GameSession {
         return this;
     }
 
-    public GameSession updateWithPlayer2(Player player2) {
-        this.player2 = player2; // TODO validate player 2
+    public GameSession tryJoinSession(Player player2) {
+        if (this.player2 != null) {
+            throw new SessionAlreadyFullException("Session already full, cannot join");
+        }
+        this.player2 = player2;
         gameState.setStatus(GameStatus.READY);
         return this;
     }
