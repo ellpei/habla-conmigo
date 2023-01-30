@@ -33,8 +33,6 @@ public class GameController {
             return sessionHandler.createSession(creator);
         } catch (InstantiationException exception) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "at capacity, sorry");
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
         }
     }
 

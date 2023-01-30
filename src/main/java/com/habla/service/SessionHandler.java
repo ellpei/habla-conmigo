@@ -1,12 +1,10 @@
 package com.habla.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.habla.response.GameSessionDTO;
 import com.habla.controller.UserDTO;
-import com.habla.exception.SessionNotFoundException;
 import com.habla.domain.gameplay.GameSession;
 import com.habla.domain.gameplay.Player;
-import com.habla.domain.util.InputHelper;
+import com.habla.exception.SessionNotFoundException;
+import com.habla.response.GameSessionDTO;
 import org.apache.commons.text.RandomStringGenerator;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class SessionHandler {
     private final ConcurrentHashMap<String, GameSession> sessions;
-    private final int maxConcurrentSessions;
+    private int maxConcurrentSessions;
 
     public SessionHandler() {
         this.maxConcurrentSessions = 10;
@@ -24,7 +22,12 @@ public class SessionHandler {
         System.out.println("init session handler");
     }
 
-    public String createSession(UserDTO creator) throws InstantiationException, JsonProcessingException {
+    public SessionHandler(int maxConcurrentSessions) {
+        this();
+        this.maxConcurrentSessions = maxConcurrentSessions;
+    }
+
+    public String createSession(UserDTO creator) throws InstantiationException {
         if (sessions.size() >= maxConcurrentSessions) {
             throw new InstantiationException("Sorry, we are at capacity right now"); // at capacity
         }
@@ -32,16 +35,10 @@ public class SessionHandler {
     }
 
     private String createAndStoreSession(UserDTO creator) {
-        GameSession newSession = new GameSession(createPlayer(creator), creator.getNumDesiredWords());
+        GameSession newSession = new GameSession(Player.create(creator), creator.getNumDesiredWords());
         String sessionId = generateSessionId();
         sessions.put(sessionId, newSession);
         return sessionId;
-    }
-
-    private Player createPlayer(UserDTO user) {
-        assert(!user.getUsername().isBlank());
-        assert(!user.getNativeLanguage().isBlank());
-        return new Player(user.getUsername(), InputHelper.parseLanguage(user.getNativeLanguage()));
     }
 
     public int numActiveSessions() {
@@ -58,7 +55,7 @@ public class SessionHandler {
     }
 
     public GameSessionDTO tryJoinSession(UserDTO user, String sessionId) throws SessionNotFoundException {
-        Player player = new Player(user.getUsername(), InputHelper.parseLanguage(user.getNativeLanguage()));
+        Player player = Player.create(user);
         return getSession(sessionId).tryJoinSession(player).toDto();
     }
 
