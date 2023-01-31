@@ -29,7 +29,7 @@ public class GameSession {
             throw new InvalidGameStateException("Game not in READY state, cannot start");
         }
         List<FlashCard> flashCards = generateFlashCards(dictionaryLoaderService);
-        int randomNum = ThreadLocalRandom.current().nextInt(0, numDesiredWords + 1);
+        int randomNum = ThreadLocalRandom.current().nextInt(0, numDesiredWords);
         gameState.setRemainingWords(flashCards);
         gameState.setCurrentVocable(flashCards.get(randomNum).getVocable());
         gameState.setStatus(GameStatus.PLAYING);
