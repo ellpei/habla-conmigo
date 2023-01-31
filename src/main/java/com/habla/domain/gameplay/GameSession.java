@@ -1,11 +1,11 @@
 package com.habla.domain.gameplay;
 
+import com.habla.exception.InvalidGameStateException;
 import com.habla.exception.SessionAlreadyFullException;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.DictionaryLoaderService;
 import com.habla.domain.language.FlashCard;
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,11 +15,8 @@ import java.util.stream.Collectors;
 public class GameSession {
     private final Player player1;
     private Player player2;
-    private State gameState;
+    private final State gameState;
     private final Integer numDesiredWords;
-
-    @Autowired
-    private DictionaryLoaderService dictionaryLoaderAdapter;
 
     public GameSession(Player creator, int numDesiredWords) {
         this.player1 = creator;
@@ -27,9 +24,11 @@ public class GameSession {
         this.gameState = new State();
     }
 
-    public GameSession startGame() {
-        assert (canStart()) : "not in ready state, cannot start game";
-        List<FlashCard> flashCards = generateFlashCards();
+    public GameSession startGame(DictionaryLoaderService dictionaryLoaderService) {
+        if (!canStart()) {
+            throw new InvalidGameStateException("Game not in READY state, cannot start");
+        }
+        List<FlashCard> flashCards = generateFlashCards(dictionaryLoaderService);
         int randomNum = ThreadLocalRandom.current().nextInt(0, numDesiredWords + 1);
         gameState.setRemainingWords(flashCards);
         gameState.setCurrentVocable(flashCards.get(randomNum).getVocable());
@@ -47,11 +46,11 @@ public class GameSession {
     }
 
     private boolean canStart() {
-        return player1.isReady() && player2.isReady() && numDesiredWords > 0;
+        return player1 != null && player2 != null && numDesiredWords > 0;
     }
 
-    private List<FlashCard> generateFlashCards() {
-        return dictionaryLoaderAdapter.loadWords(
+    private List<FlashCard> generateFlashCards(DictionaryLoaderService dictionaryLoaderService) {
+        return dictionaryLoaderService.loadWords(
                 player1.getNativeLanguage(),
                 player2.getNativeLanguage(),
                 numDesiredWords)
@@ -59,8 +58,12 @@ public class GameSession {
                 .collect(Collectors.toList());
     }
 
-    public void endGame() {
-
+    public GameSession endGame() {
+        if (gameState.getStatus() != GameStatus.PLAYING) {
+            throw new InvalidGameStateException("Game not in PLAYING state, cannot end game");
+        }
+        gameState.setStatus(GameStatus.FINISHED);
+        return this;
     }
 
     public GameSessionDTO toDto() {
@@ -71,6 +74,7 @@ public class GameSession {
                 .numDesiredWords(numDesiredWords)
                 .numRemainingWords(getGameState().getRemainingWords().size())
                 .status(gameState.getStatus().toString())
+                .currentVocable(gameState.getCurrentVocable())
                 .build();
     }
 }

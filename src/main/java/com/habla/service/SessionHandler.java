@@ -6,6 +6,7 @@ import com.habla.domain.gameplay.Player;
 import com.habla.exception.SessionNotFoundException;
 import com.habla.response.GameSessionDTO;
 import org.apache.commons.text.RandomStringGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -16,14 +17,18 @@ public class SessionHandler {
     private final ConcurrentHashMap<String, GameSession> sessions;
     private int maxConcurrentSessions;
 
-    public SessionHandler() {
+    private final DictionaryLoaderService dictionaryLoaderService;
+
+    @Autowired
+    public SessionHandler(DictionaryLoaderService dictionaryLoaderService) {
         this.maxConcurrentSessions = 10;
         this.sessions = new ConcurrentHashMap<>();
+        this.dictionaryLoaderService = dictionaryLoaderService;
         System.out.println("init session handler");
     }
 
-    public SessionHandler(int maxConcurrentSessions) {
-        this();
+    public SessionHandler(DictionaryLoaderService dictionaryLoaderService, int maxConcurrentSessions) {
+        this(dictionaryLoaderService);
         this.maxConcurrentSessions = maxConcurrentSessions;
     }
 
@@ -35,7 +40,7 @@ public class SessionHandler {
     }
 
     private String createAndStoreSession(UserDTO creator) {
-        GameSession newSession = new GameSession(Player.create(creator), creator.getNumDesiredWords());
+        GameSession newSession = new GameSession(new Player(creator), creator.getNumDesiredWords());
         String sessionId = generateSessionId();
         sessions.put(sessionId, newSession);
         return sessionId;
@@ -55,12 +60,18 @@ public class SessionHandler {
     }
 
     public GameSessionDTO tryJoinSession(UserDTO user, String sessionId) throws SessionNotFoundException {
-        Player player = Player.create(user);
+        Player player = new Player(user);
         return getSession(sessionId).tryJoinSession(player).toDto();
     }
 
     public GameSessionDTO startGame(String sessionId) throws SessionNotFoundException {
-        return getSession(sessionId).startGame().toDto();
+        return getSession(sessionId).startGame(dictionaryLoaderService).toDto();
+    }
+
+    public GameSessionDTO endGame(String sessionId) throws SessionNotFoundException {
+        GameSession endedSession = getSession(sessionId).endGame();
+        sessions.remove(sessionId);
+        return endedSession.toDto();
     }
 
     private String generateSessionId() {

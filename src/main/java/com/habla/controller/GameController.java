@@ -1,6 +1,5 @@
 package com.habla.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.SessionHandler;
 import com.habla.exception.SessionNotFoundException;
@@ -61,10 +60,10 @@ public class GameController {
         return null;
     }
 
-    @PostMapping(path = "/session/{id}/end-game", produces = "application/json")
+    @PostMapping(path = "/session/{id}/end", produces = "application/json")
     @ResponseBody
     public GameSessionDTO endGame(@PathVariable String id) {
-        return null;
+        return sessionHandler.endGame(id);
     }
 
     @GetMapping(path = "/session/{id}", produces = "application/json")

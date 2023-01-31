@@ -1,6 +1,10 @@
 package com.habla.service;
 
+import com.habla.TestHelper;
 import com.habla.controller.UserDTO;
+import com.habla.domain.language.Language;
+import com.habla.domain.language.Vocable;
+import com.habla.exception.InvalidGameStateException;
 import com.habla.exception.SessionNotFoundException;
 import com.habla.response.GameSessionDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,19 +13,29 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 class SessionHandlerTest {
 
     private SessionHandler sessionHandler;
 
+    @Mock
+    DictionaryLoaderService mockDictionaryLoaderService = mock(DictionaryLoaderService.class);
+
     @BeforeEach
     void setUp() {
-        sessionHandler = new SessionHandler();
+        sessionHandler = new SessionHandler(mockDictionaryLoaderService);
     }
 
     private static Stream<Arguments> happyPathParameters() {
@@ -68,7 +82,7 @@ class SessionHandlerTest {
 
     @Test
     void createSessionAtCapacityException() throws InstantiationException {
-        SessionHandler sessionHandlerLowCapacity = new SessionHandler(1);
+        SessionHandler sessionHandlerLowCapacity = new SessionHandler(mockDictionaryLoaderService, 1);
         UserDTO creator = new UserDTO("username", "swedish", 10);
         sessionHandlerLowCapacity.createSession(creator);
 
@@ -183,7 +197,44 @@ class SessionHandlerTest {
     }
 
     @Test
-    void startGame() {
-        // TODO
+    void startGameHappyPath() throws InstantiationException {
+        int numDesiredWords = 20;
+        UserDTO creator = new UserDTO("username1", "swedish", numDesiredWords);
+        String sessionId = sessionHandler.createSession(creator);
+        UserDTO joiner = new UserDTO("joinername", "spanish");
+        sessionHandler.tryJoinSession(joiner, sessionId);
+        ArrayList<Vocable> words = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, numDesiredWords);
+        when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, numDesiredWords))
+                .thenReturn(words);
+
+        GameSessionDTO res = sessionHandler.startGame(sessionId);
+
+        assertThat(res.getStatus()).isEqualTo("PLAYING");
+        assertThat(res.getNumRemainingWords()).isEqualTo(numDesiredWords);
+        assertThat(res.getCompleted().size()).isEqualTo(0);
+        assertThat(res.getCurrentVocable()).isIn(words);
     }
+
+    @Test
+    void tryStartSessionNotExistsException() {
+        String sessionId = "XYZ";
+
+        SessionNotFoundException exception = assertThrows(SessionNotFoundException.class,
+                () -> sessionHandler.startGame(sessionId));
+
+        assertThat(exception.getMessage()).isEqualTo("Session with id XYZ could not be found");
+    }
+
+    @Test
+    void startGameMissingPlayer2Exception() throws InstantiationException {
+        int numDesiredWords = 20;
+        UserDTO creator = new UserDTO("username1", "swedish", numDesiredWords);
+        String sessionId = sessionHandler.createSession(creator);
+
+        InvalidGameStateException exception = assertThrows(InvalidGameStateException.class,
+                () -> sessionHandler.startGame(sessionId));
+
+        assertThat(exception.getMessage()).isEqualTo("Game not in READY state, cannot start");
+    }
+
 }
