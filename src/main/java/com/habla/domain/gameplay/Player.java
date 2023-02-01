@@ -11,7 +11,7 @@ import lombok.Data;
 public class Player {
     private final String username;
     private final Language nativeLanguage;
-    private final Long points;
+    private Long points;
 
     public Player(UserDTO user) {
         if (user.getUsername() == null || user.getUsername().isBlank()) {
@@ -23,5 +23,9 @@ public class Player {
         this.username = user.getUsername();
         this.nativeLanguage = InputHelper.parseLanguage(user.getNativeLanguage());
         this.points = 0L;
+    }
+
+    public void addPoints(Long amount) {
+        points += amount;
     }
 }

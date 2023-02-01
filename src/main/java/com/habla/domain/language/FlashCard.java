@@ -1,20 +1,18 @@
 package com.habla.domain.language;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
 public class FlashCard {
     private Vocable vocable;
-    private boolean player1Completed;
-    private boolean player2Completed;
+    private Boolean player1Passed;
+    private Boolean player2Passed;
     private int timesDisplayed;
 
     public FlashCard(Vocable vocable) {
         this.vocable = vocable;
-        this.player1Completed = false;
-        this.player2Completed = false;
         this.timesDisplayed = 0;
     }
 
@@ -24,6 +22,11 @@ public class FlashCard {
     }
 
     public boolean isComplete() {
-        return this.player1Completed && this.player2Completed;
+        return this.player1Passed != null && this.player2Passed != null;
+    }
+
+    public boolean bothPassed() {
+        return player1Passed != null && player1Passed
+                && player2Passed != null && player2Passed;
     }
 }

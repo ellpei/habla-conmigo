@@ -19,6 +19,6 @@ public class GameSessionDTO {
     private final Integer numDesiredWords;
     private int numRemainingWords;
     private final List<FlashCard> completed;
-    private Vocable currentVocable;
+    private FlashCard currentFlashCard;
 
 }

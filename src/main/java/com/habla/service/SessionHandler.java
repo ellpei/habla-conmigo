@@ -74,6 +74,14 @@ public class SessionHandler {
         return endedSession.toDto();
     }
 
+    public GameSessionDTO approveWord(String sessionId, String approverUsername) {
+        return getSession(sessionId).approveWord(approverUsername).toDto();
+    }
+
+    public GameSessionDTO failWord(String sessionId, String approverUsername) {
+        return getSession(sessionId).failWord(approverUsername).toDto();
+    }
+
     private String generateSessionId() {
         RandomStringGenerator generator = new RandomStringGenerator.Builder().withinRange('a', 'z').build();
         return generator.generate(5).toUpperCase();

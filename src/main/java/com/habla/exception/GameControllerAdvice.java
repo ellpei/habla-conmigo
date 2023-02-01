@@ -19,4 +19,9 @@ public class GameControllerAdvice extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> sessionAlreadyFullException(SessionAlreadyFullException ex, WebRequest request) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.FORBIDDEN);
     }
+
+    @ExceptionHandler(InvalidGameStateException.class)
+    public ResponseEntity<Object> invalidGameStateException(InvalidGameStateException ex, WebRequest request) {
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
 }

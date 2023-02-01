@@ -8,7 +8,7 @@ import com.habla.domain.language.FlashCard;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Getter
@@ -29,9 +29,8 @@ public class GameSession {
             throw new InvalidGameStateException("Game not in READY state, cannot start");
         }
         List<FlashCard> flashCards = generateFlashCards(dictionaryLoaderService);
-        int randomNum = ThreadLocalRandom.current().nextInt(0, numDesiredWords);
         gameState.setRemainingWords(flashCards);
-        gameState.setCurrentVocable(flashCards.get(randomNum).getVocable());
+        gameState.randomizeCurrentFlashCard();
         gameState.setStatus(GameStatus.PLAYING);
         return this;
     }
@@ -58,12 +57,38 @@ public class GameSession {
                 .collect(Collectors.toList());
     }
 
-    public GameSession endGame() {
-        if (gameState.getStatus() != GameStatus.PLAYING) {
-            throw new InvalidGameStateException("Game not in PLAYING state, cannot end game");
+    public GameSession approveWord(String approverUsername) {
+        assertCorrectState(GameStatus.PLAYING);
+        return updateCurrentFlashCard(approverUsername, true);
+    }
+
+    public GameSession failWord(String approverUsername) {
+        assertCorrectState(GameStatus.PLAYING);
+        return updateCurrentFlashCard(approverUsername, false);
+    }
+
+    private GameSession updateCurrentFlashCard(String approverUsername, boolean opponentPassed) {
+        if (Objects.equals(getPlayer1().getUsername(), approverUsername)) {
+            gameState.setPlayer2CompletedWord(opponentPassed);
+            player2.addPoints(opponentPassed ? 1L : 0L);
+        } else if (Objects.equals(getPlayer2().getUsername(), approverUsername)) {
+            gameState.setPlayer1CompletedWord(opponentPassed);
+            player1.addPoints(opponentPassed ? 1L : 0L);
         }
+        return this;
+    }
+
+    public GameSession endGame() {
+        assertCorrectState(GameStatus.PLAYING);
         gameState.setStatus(GameStatus.FINISHED);
         return this;
+    }
+
+    private void assertCorrectState(GameStatus status) {
+        if (gameState.getStatus() != status) {
+            throw new InvalidGameStateException(
+                    String.format("Game not in %s state, cannot perform operation", status.toString()));
+        }
     }
 
     public GameSessionDTO toDto() {
@@ -74,7 +99,7 @@ public class GameSession {
                 .numDesiredWords(numDesiredWords)
                 .numRemainingWords(getGameState().getRemainingWords().size())
                 .status(gameState.getStatus().toString())
-                .currentVocable(gameState.getCurrentVocable())
+                .currentFlashCard(gameState.getCurrentFlashCard())
                 .build();
     }
 }

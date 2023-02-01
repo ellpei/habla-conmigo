@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -212,7 +213,7 @@ class SessionHandlerTest {
         assertThat(res.getStatus()).isEqualTo("PLAYING");
         assertThat(res.getNumRemainingWords()).isEqualTo(numDesiredWords);
         assertThat(res.getCompleted().size()).isEqualTo(0);
-        assertThat(res.getCurrentVocable()).isIn(words);
+        assertThat(res.getCurrentFlashCard().getVocable()).isIn(words);
     }
 
     @Test
@@ -235,6 +236,47 @@ class SessionHandlerTest {
                 () -> sessionHandler.startGame(sessionId));
 
         assertThat(exception.getMessage()).isEqualTo("Game not in READY state, cannot start");
+    }
+
+    private String createAndStartSession(String player1, String player2) throws InstantiationException {
+        UserDTO creator = new UserDTO(player1, "swedish", 20);
+        String sessionId = sessionHandler.createSession(creator);
+        UserDTO joiner = new UserDTO(player2, "spanish");
+        sessionHandler.tryJoinSession(joiner, sessionId);
+        ArrayList<Vocable> words = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, 20);
+        when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, 20))
+                .thenReturn(words);
+        sessionHandler.startGame(sessionId);
+        return sessionId;
+    }
+    @Test
+    void approveWord() throws InstantiationException {
+        String player1Username = "playa1";
+        String player2Username = "playa2";
+        String sessionId = createAndStartSession(player1Username, player2Username);
+
+        GameSessionDTO res = sessionHandler.approveWord(sessionId, player2Username);
+
+        assertThat(res.getCurrentFlashCard().bothPassed()).isFalse();
+        assertThat(res.getCurrentFlashCard().getPlayer1Passed()).isTrue();
+        assertNull(res.getCurrentFlashCard().getPlayer2Passed());
+        assertThat(res.getPlayer1().getPoints()).isEqualTo(1);
+        assertThat(res.getPlayer2().getPoints()).isEqualTo(0);
+    }
+
+    @Test
+    void failWord() throws InstantiationException {
+        String player1Username = "playa1";
+        String player2Username = "playa2";
+        String sessionId = createAndStartSession(player1Username, player2Username);
+
+        GameSessionDTO res = sessionHandler.failWord(sessionId, player2Username);
+
+        assertThat(res.getCurrentFlashCard().bothPassed()).isFalse();
+        assertThat(res.getCurrentFlashCard().getPlayer1Passed()).isFalse();
+        assertNull(res.getCurrentFlashCard().getPlayer2Passed());
+        assertThat(res.getPlayer1().getPoints()).isEqualTo(0);
+        assertThat(res.getPlayer2().getPoints()).isEqualTo(0);
     }
 
 }

@@ -1,11 +1,14 @@
 package com.habla.domain.gameplay;
 
 import com.habla.TestHelper;
+import com.habla.domain.language.FlashCard;
 import com.habla.domain.language.Language;
 import com.habla.domain.language.Vocable;
 import com.habla.exception.InvalidGameStateException;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.DictionaryLoaderService;
+import com.habla.service.SessionHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
@@ -18,12 +21,21 @@ import static org.mockito.Mockito.when;
 
 class GameSessionTest {
 
-    private static final Player TEST_PLAYER = new Player("testusername", Language.SWEDISH, 0L);
-    private static final Player TEST_JOINER = new Player("joinerusername", Language.SPANISH, 0L);
+    private static Player TEST_PLAYER;
+    private static Player TEST_JOINER;
     private static final int NUM_DESIRED_WORDS = 10;
+
+    private GameSession gameSession;
 
     @Mock
     private DictionaryLoaderService mockDictionaryLoaderService = mock(DictionaryLoaderService.class);
+
+    @BeforeEach
+    void setUp() {
+        gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
+        TEST_PLAYER = new Player("testusername", Language.SWEDISH, 0L);
+        TEST_JOINER = new Player("testjoiner", Language.SPANISH, 0L);
+    }
 
     @Test
     void createGameSession() {
@@ -35,28 +47,24 @@ class GameSessionTest {
         assertThat(gameSession.getGameState().getStatus()).isEqualTo(GameStatus.CREATED);
         assertThat(gameSession.getGameState().getRemainingWords()).isEmpty();
         assertThat(gameSession.getGameState().getCompleted()).isEmpty();
-        assertThat(gameSession.getGameState().getCurrentVocable()).isNull();
+        assertThat(gameSession.getGameState().getCurrentFlashCard()).isNull();
     }
 
     @Test
     void joinGameSessionStateChangeToReady() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
-
         GameSession res = gameSession.tryJoinSession(TEST_JOINER);
 
         assertThat(res.getNumDesiredWords()).isEqualTo(NUM_DESIRED_WORDS);
         assertThat(res.getPlayer1()).isEqualTo(TEST_PLAYER);
         assertThat(res.getPlayer2()).isEqualTo(TEST_JOINER);
         assertThat(res.getGameState().getStatus()).isEqualTo(GameStatus.READY);
-        assertThat(gameSession.getGameState().getRemainingWords()).isEmpty();
-        assertThat(gameSession.getGameState().getCompleted()).isEmpty();
-        assertThat(gameSession.getGameState().getCurrentVocable()).isNull();
+        assertThat(res.getGameState().getRemainingWords()).isEmpty();
+        assertThat(res.getGameState().getCompleted()).isEmpty();
+        assertThat(res.getGameState().getCurrentFlashCard()).isNull();
     }
 
     @Test
     void startGameNotInReadyStateException() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
-
         InvalidGameStateException exception = assertThrows(InvalidGameStateException.class,
                 () -> gameSession.startGame(mockDictionaryLoaderService));
 
@@ -65,7 +73,6 @@ class GameSessionTest {
 
     @Test
     void startGameStateHappyPath() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
         gameSession.tryJoinSession(TEST_JOINER);
         ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS);
         when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS)).thenReturn(vocables);
@@ -76,23 +83,22 @@ class GameSessionTest {
         assertThat(res.getPlayer1()).isEqualTo(TEST_PLAYER);
         assertThat(res.getPlayer2()).isEqualTo(TEST_JOINER);
         assertThat(res.getGameState().getStatus()).isEqualTo(GameStatus.PLAYING);
-        assertThat(gameSession.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS);
-        assertThat(gameSession.getGameState().getCompleted()).isEmpty();
-        assertThat(gameSession.getGameState().getCurrentVocable()).isIn(vocables);
+        assertThat(res.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS);
+        assertThat(res.getGameState().getCompleted()).isEmpty();
+        assertThat(res.getGameState().getCurrentFlashCard().getVocable()).isIn(vocables);
+        assertThat(res.getGameState().getCurrentFlashCard().getPlayer1Passed()).isNull();
+        assertThat(res.getGameState().getCurrentFlashCard().getPlayer2Passed()).isNull();
     }
 
     @Test
     void endGameNotInPlayingStateException() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
-
         InvalidGameStateException exception = assertThrows(InvalidGameStateException.class, gameSession::endGame);
 
-        assertThat(exception.getMessage()).isEqualTo("Game not in PLAYING state, cannot end game");
+        assertThat(exception.getMessage()).isEqualTo("Game not in PLAYING state, cannot perform operation");
     }
 
     @Test
     void endGameHappyPath() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
         gameSession.tryJoinSession(TEST_JOINER);
         ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS);
         when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS)).thenReturn(vocables);
@@ -104,14 +110,51 @@ class GameSessionTest {
         assertThat(res.getPlayer1()).isEqualTo(TEST_PLAYER);
         assertThat(res.getPlayer2()).isEqualTo(TEST_JOINER);
         assertThat(res.getGameState().getStatus()).isEqualTo(GameStatus.FINISHED);
+        assertThat(res.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS);
+        assertThat(res.getGameState().getCompleted()).isEmpty();
+        assertThat(res.getGameState().getCurrentFlashCard().getVocable()).isIn(vocables);
+    }
+
+    @Test
+    void completeWordBothPlayersPassed() {
+        gameSession.tryJoinSession(TEST_JOINER);
+        ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS);
+        when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS)).thenReturn(vocables);
+        gameSession = gameSession.startGame(mockDictionaryLoaderService);
+        FlashCard originalFlashCard = gameSession.getGameState().getCurrentFlashCard();
+
+        gameSession.approveWord(TEST_JOINER.getUsername());
+        gameSession = gameSession.approveWord(TEST_PLAYER.getUsername());
+
+        assertThat(gameSession.getGameState().getStatus()).isEqualTo(GameStatus.PLAYING);
+        assertThat(gameSession.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS-1);
+        assertThat(gameSession.getGameState().getCompleted().size()).isEqualTo(1);
+        assertThat(gameSession.getGameState().getCompleted().get(0)).isEqualTo(originalFlashCard);
+        assertThat(gameSession.getGameState().getCurrentFlashCard()).isNotEqualTo(originalFlashCard);
+        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(1L);
+        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(1L);
+    }
+
+    @Test
+    void approveWordOnePlayerPassed() {
+        gameSession.tryJoinSession(TEST_JOINER);
+        ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS);
+        when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS)).thenReturn(vocables);
+        gameSession = gameSession.startGame(mockDictionaryLoaderService);
+        FlashCard originalFlashCard = gameSession.getGameState().getCurrentFlashCard();
+
+        gameSession = gameSession.approveWord(TEST_PLAYER.getUsername());
+
+        assertThat(gameSession.getGameState().getStatus()).isEqualTo(GameStatus.PLAYING);
         assertThat(gameSession.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS);
-        assertThat(gameSession.getGameState().getCompleted()).isEmpty();
-        assertThat(gameSession.getGameState().getCurrentVocable()).isIn(vocables);
+        assertThat(gameSession.getGameState().getCompleted().size()).isEqualTo(0);
+        assertThat(gameSession.getGameState().getCurrentFlashCard()).isEqualTo(originalFlashCard);
+        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(0L);
+        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(1L);
     }
 
     @Test
     void toDto() {
-        GameSession gameSession = new GameSession(TEST_PLAYER, NUM_DESIRED_WORDS);
         gameSession.tryJoinSession(TEST_JOINER);
         ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS);
         when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, NUM_DESIRED_WORDS)).thenReturn(vocables);

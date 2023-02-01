@@ -47,17 +47,16 @@ public class GameController {
         return sessionHandler.startGame(id);
     }
 
-    @PostMapping(path = "/session/{id}/mark-approved", produces = "application/json")
+    @PostMapping(path = "/session/{id}/approve", produces = "application/json")
     @ResponseBody
-    public GameSessionDTO approveWord(@PathVariable String id) {
-        // TODO
-        return null;
+    public GameSessionDTO approveWord(@PathVariable String id, @Valid @RequestBody String approverUsername) {
+        return sessionHandler.approveWord(id, approverUsername);
     }
 
-    @PostMapping(path = "/session/{id}/mark-failed", produces = "application/json")
+    @PostMapping(path = "/session/{id}/fail", produces = "application/json")
     @ResponseBody
-    public GameSessionDTO failWord(@PathVariable String id) {
-        return null;
+    public GameSessionDTO failWord(@PathVariable String id, @Valid @RequestBody String approverUsername) {
+        return sessionHandler.failWord(id, approverUsername);
     }
 
     @PostMapping(path = "/session/{id}/end", produces = "application/json")
