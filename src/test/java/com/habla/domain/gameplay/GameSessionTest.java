@@ -7,7 +7,6 @@ import com.habla.domain.language.Vocable;
 import com.habla.exception.InvalidGameStateException;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.DictionaryLoaderService;
-import com.habla.service.SessionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -151,6 +150,23 @@ class GameSessionTest {
         assertThat(gameSession.getGameState().getCurrentFlashCard()).isEqualTo(originalFlashCard);
         assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(0L);
         assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(1L);
+    }
+
+    @Test
+    void completeLastWordStateIsFinished() {
+        gameSession = new GameSession(TEST_PLAYER, 1);
+        gameSession.tryJoinSession(TEST_JOINER);
+        ArrayList<Vocable> vocables = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, 1);
+        when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, 1)).thenReturn(vocables);
+        gameSession = gameSession.startGame(mockDictionaryLoaderService);
+
+        gameSession.approveWord(TEST_JOINER.getUsername());
+        gameSession = gameSession.approveWord(TEST_PLAYER.getUsername());
+
+        assertThat(gameSession.getGameState().getStatus()).isEqualTo(GameStatus.FINISHED);
+        assertThat(gameSession.getGameState().getRemainingWords().size()).isEqualTo(0);
+        assertThat(gameSession.getGameState().getCompleted().size()).isEqualTo(1);
+        assertThat(gameSession.getGameState().getCurrentFlashCard()).isNull();
     }
 
     @Test

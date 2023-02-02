@@ -11,21 +11,22 @@ import org.springframework.web.server.ResponseStatusException;
 import javax.validation.Valid;
 
 @RestController
+@RequestMapping("session")
 public class GameController {
     @Autowired
     SessionHandler sessionHandler;
 
-    @GetMapping(path = "/", produces = "application/json")
+    @GetMapping(path = "/")
     public String index() {
         return "Welcome to Habla Conmigo!";
     }
 
-    @GetMapping(path = "/num-sessions", produces = "application/json")
+    @GetMapping(path = "/total", produces = "application/json")
     public int numSessions() {
         return sessionHandler.numActiveSessions();
     }
 
-    @PostMapping(path = "/create-session", produces = "application/json")
+    @PostMapping(path = "/create", consumes = "application/json", produces = "application/json")
     @ResponseBody
     public String createSession(@Valid @RequestBody UserDTO creator) {
         try {
@@ -35,37 +36,37 @@ public class GameController {
         }
     }
 
-    @PostMapping(path = "/session/{id}/join", consumes = "application/json", produces = "application/json")
+    @PostMapping(path = "/{id}/join", consumes = "application/json", produces = "application/json")
     @ResponseBody
     public GameSessionDTO joinSession(@PathVariable String id, @Valid @RequestBody UserDTO user) throws SessionNotFoundException {
         return sessionHandler.tryJoinSession(user, id);
     }
 
-    @PostMapping(path = "/session/{id}/start", produces = "application/json")
+    @PostMapping(path = "/{id}/start", produces = "application/json")
     @ResponseBody
     public GameSessionDTO startGame(@PathVariable String id) throws SessionNotFoundException {
         return sessionHandler.startGame(id);
     }
 
-    @PostMapping(path = "/session/{id}/approve", produces = "application/json")
+    @PostMapping(path = "/{id}/approve", produces = "application/json")
     @ResponseBody
     public GameSessionDTO approveWord(@PathVariable String id, @Valid @RequestBody String approverUsername) {
         return sessionHandler.approveWord(id, approverUsername);
     }
 
-    @PostMapping(path = "/session/{id}/fail", produces = "application/json")
+    @PostMapping(path = "/{id}/fail", produces = "application/json")
     @ResponseBody
     public GameSessionDTO failWord(@PathVariable String id, @Valid @RequestBody String approverUsername) {
         return sessionHandler.failWord(id, approverUsername);
     }
 
-    @PostMapping(path = "/session/{id}/end", produces = "application/json")
+    @PostMapping(path = "/{id}/end", produces = "application/json")
     @ResponseBody
     public GameSessionDTO endGame(@PathVariable String id) {
         return sessionHandler.endGame(id);
     }
 
-    @GetMapping(path = "/session/{id}", produces = "application/json")
+    @GetMapping(path = "/{id}", produces = "application/json")
     @ResponseBody
     public GameSessionDTO getSession(@PathVariable String id) throws SessionNotFoundException {
         System.out.println("Retreiving session with id " + id);

@@ -239,14 +239,19 @@ class SessionHandlerTest {
     }
 
     private String createAndStartSession(String player1, String player2) throws InstantiationException {
-        UserDTO creator = new UserDTO(player1, "swedish", 20);
-        String sessionId = sessionHandler.createSession(creator);
-        UserDTO joiner = new UserDTO(player2, "spanish");
-        sessionHandler.tryJoinSession(joiner, sessionId);
+        String sessionId = createSession(player1, player2);
         ArrayList<Vocable> words = TestHelper.generateRandomVocableList(Language.SWEDISH, Language.SPANISH, 20);
         when(mockDictionaryLoaderService.loadWords(Language.SWEDISH, Language.SPANISH, 20))
                 .thenReturn(words);
         sessionHandler.startGame(sessionId);
+        return sessionId;
+    }
+
+    private String createSession(String player1, String player2) throws InstantiationException {
+        UserDTO creator = new UserDTO(player1, "swedish", 20);
+        String sessionId = sessionHandler.createSession(creator);
+        UserDTO joiner = new UserDTO(player2, "spanish");
+        sessionHandler.tryJoinSession(joiner, sessionId);
         return sessionId;
     }
     @Test
@@ -265,6 +270,18 @@ class SessionHandlerTest {
     }
 
     @Test
+    void approveWordInvalidState() throws InstantiationException {
+        String player1Username = "playa1";
+        String player2Username = "playa2";
+        String sessionId = createSession(player1Username, player2Username);
+
+        InvalidGameStateException exception = assertThrows(InvalidGameStateException.class,
+                () -> sessionHandler.approveWord(sessionId, player2Username));
+
+        assertThat(exception.getMessage()).isEqualTo("Game not in PLAYING state, cannot perform operation");
+    }
+
+    @Test
     void failWord() throws InstantiationException {
         String player1Username = "playa1";
         String player2Username = "playa2";
@@ -277,6 +294,18 @@ class SessionHandlerTest {
         assertNull(res.getCurrentFlashCard().getPlayer2Passed());
         assertThat(res.getPlayer1().getPoints()).isEqualTo(0);
         assertThat(res.getPlayer2().getPoints()).isEqualTo(0);
+    }
+
+    @Test
+    void failWordInvalidState() throws InstantiationException {
+        String player1Username = "playa1";
+        String player2Username = "playa2";
+        String sessionId = createSession(player1Username, player2Username);
+
+        InvalidGameStateException exception = assertThrows(InvalidGameStateException.class,
+                () -> sessionHandler.failWord(sessionId, player2Username));
+
+        assertThat(exception.getMessage()).isEqualTo("Game not in PLAYING state, cannot perform operation");
     }
 
 }

@@ -9,6 +9,7 @@ import org.apache.commons.text.RandomStringGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,7 +27,6 @@ public class SessionHandler {
         this.dictionaryLoaderService = dictionaryLoaderService;
         System.out.println("init session handler");
     }
-
     public SessionHandler(DictionaryLoaderService dictionaryLoaderService, int maxConcurrentSessions) {
         this(dictionaryLoaderService);
         this.maxConcurrentSessions = maxConcurrentSessions;
@@ -85,6 +85,22 @@ public class SessionHandler {
     private String generateSessionId() {
         RandomStringGenerator generator = new RandomStringGenerator.Builder().withinRange('a', 'z').build();
         return generator.generate(5).toUpperCase();
+    }
+
+    public List<String> getAllSessionIds() {
+        return sessions.keySet().stream().toList();
+    }
+
+    public List<String> deleteAllSessions() {
+        List<String> sessionIds = getAllSessionIds();
+        sessions.clear();
+        return sessionIds;
+    }
+
+    public void deleteSession(String id) {
+        if (sessions.remove(id) == null ) {
+            throw new SessionNotFoundException("Session with id " + id + " not found, cannot delete");
+        }
     }
 
 }

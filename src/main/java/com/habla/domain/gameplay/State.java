@@ -42,6 +42,11 @@ public class State {
     }
 
     public void randomizeCurrentFlashCard() {
+        if (remainingWords.size() == 0) {
+            status = GameStatus.FINISHED;
+            setCurrentFlashCard(null);
+            return;
+        }
         int randomNum = ThreadLocalRandom.current().nextInt(0, remainingWords.size());
         setCurrentFlashCard(remainingWords.get(randomNum));
     }

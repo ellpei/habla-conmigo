@@ -30,8 +30,8 @@ public class GameSession {
         }
         List<FlashCard> flashCards = generateFlashCards(dictionaryLoaderService);
         gameState.setRemainingWords(flashCards);
-        gameState.randomizeCurrentFlashCard();
         gameState.setStatus(GameStatus.PLAYING);
+        gameState.randomizeCurrentFlashCard();
         return this;
     }
 

@@ -1,7 +1,6 @@
 package com.habla.controller;
 
 import com.habla.response.GameSessionDTO;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,12 +20,8 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 class GameControllerLifecycleTest {
     @Value(value="${local.server.port}")
     private int port;
-
-    private final String basePath = "http://localhost:";
-
-    private static final String CREATE_SESSION = "/create-session";
-    private static final String NUM_SESSIONS = "/num-sessions";
-    private static final String SESSION = "/session";
+    private static final String CREATE = "/create";
+    private static final String NUM_SESSIONS = "/total";
     private static final String JOIN = "/join";
     private static final String START = "/start";
     private static final String APPROVE = "/approve";
@@ -41,22 +36,13 @@ class GameControllerLifecycleTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
-
-    @BeforeEach
-    void setUp() {
-    }
-
-    @Test
-    void index() {
-        final ResponseEntity<String> res = restTemplate.getForEntity(basePath + port + "/", String.class);
-
-        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody()).contains("Welcome to Habla Conmigo!");
+    private String getBaseUrl() {
+        return "http://localhost:" + port + "/session/";
     }
 
     @Test
     void numSessionsisZero() {
-        final ResponseEntity<Integer> res = restTemplate.getForEntity(basePath + port + NUM_SESSIONS, Integer.class);
+        final ResponseEntity<Integer> res = restTemplate.getForEntity(getBaseUrl() + NUM_SESSIONS, Integer.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(0);
@@ -65,9 +51,9 @@ class GameControllerLifecycleTest {
     @Test
     void numSessionsisNotZero() {
         final UserDTO requestBody = new UserDTO(TEST_USERNAME, NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
-        restTemplate.postForEntity(basePath + port + CREATE_SESSION, requestBody, String.class);
+        restTemplate.postForEntity(getBaseUrl() + CREATE, requestBody, String.class);
 
-        final ResponseEntity<Integer> res = restTemplate.getForEntity(basePath + port + NUM_SESSIONS, Integer.class);
+        final ResponseEntity<Integer> res = restTemplate.getForEntity(getBaseUrl() + NUM_SESSIONS, Integer.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isEqualTo(1);
@@ -77,7 +63,7 @@ class GameControllerLifecycleTest {
     void createSessionHappyPath() {
         final UserDTO requestBody = new UserDTO(TEST_USERNAME, NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
 
-        final ResponseEntity<String> res = restTemplate.postForEntity(basePath + port + CREATE_SESSION, requestBody, String.class);
+        final ResponseEntity<String> res = restTemplate.postForEntity(getBaseUrl() + CREATE, requestBody, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().length()).isPositive();
@@ -87,7 +73,7 @@ class GameControllerLifecycleTest {
     void createSessionMissingNumDesiredWords() {
         final UserDTO requestBody = new UserDTO(TEST_USERNAME, NATIVE_LANGUAGE);
 
-        final ResponseEntity<String> res = restTemplate.postForEntity(basePath + port + CREATE_SESSION, requestBody, String.class);
+        final ResponseEntity<String> res = restTemplate.postForEntity(getBaseUrl() + CREATE, requestBody, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().length()).isPositive();
@@ -97,7 +83,7 @@ class GameControllerLifecycleTest {
     void createSessionEmptyUserName() {
         final UserDTO requestBody = new UserDTO("", NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
 
-        final ResponseEntity<String> res = restTemplate.postForEntity(basePath + port + CREATE_SESSION, requestBody, String.class);
+        final ResponseEntity<String> res = restTemplate.postForEntity(getBaseUrl() + CREATE, requestBody, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -106,7 +92,7 @@ class GameControllerLifecycleTest {
     void createSessionMissingNativeLanguage() {
         final UserDTO requestBody = new UserDTO(TEST_USERNAME, "");
 
-        final ResponseEntity<String> res = restTemplate.postForEntity(basePath + port + CREATE_SESSION, requestBody, String.class);
+        final ResponseEntity<String> res = restTemplate.postForEntity(getBaseUrl() + CREATE, requestBody, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -116,8 +102,7 @@ class GameControllerLifecycleTest {
         final String sessionId = "XYZ";
 
         final ResponseEntity<String> res = restTemplate.getForEntity(
-                basePath + port + SESSION + "/" + sessionId,
-                String.class);
+                getBaseUrl() + "/" + sessionId, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(res.getBody()).isEqualTo("Session with id XYZ could not be found");
@@ -128,8 +113,7 @@ class GameControllerLifecycleTest {
         String sessionId = createSession(TEST_USERNAME);
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.getForEntity(
-                basePath + port + SESSION + "/" + sessionId,
-                GameSessionDTO.class);
+                getBaseUrl() + "/" + sessionId, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody()).isNotNull();
@@ -142,7 +126,7 @@ class GameControllerLifecycleTest {
 
     private String createSession(String creatorUsername) {
         final UserDTO createSessionRequestBody = new UserDTO(creatorUsername, NATIVE_LANGUAGE, NUM_DESIRED_WORDS);
-        final ResponseEntity<String> createResponse = restTemplate.postForEntity(basePath + port + CREATE_SESSION, createSessionRequestBody, String.class);
+        final ResponseEntity<String> createResponse = restTemplate.postForEntity(getBaseUrl() + CREATE, createSessionRequestBody, String.class);
         return createResponse.getBody();
     }
 
@@ -152,7 +136,7 @@ class GameControllerLifecycleTest {
         final UserDTO requestBody = new UserDTO(TEST_USERNAME2, "Spanish");
 
         final ResponseEntity<String> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + JOIN, requestBody,
+                getBaseUrl() + "/" + sessionId + JOIN, requestBody,
                 String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -165,7 +149,7 @@ class GameControllerLifecycleTest {
         final UserDTO joinSessionRequestBody = new UserDTO(TEST_USERNAME2, "Spanish");
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody,
+                getBaseUrl() + "/" + sessionId + JOIN, joinSessionRequestBody,
                 GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -181,7 +165,7 @@ class GameControllerLifecycleTest {
         final UserDTO joinSessionRequestBody = new UserDTO(TEST_USERNAME2, null);
 
         final ResponseEntity<Object> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody,
+                getBaseUrl() + "/" + sessionId + JOIN, joinSessionRequestBody,
                 Object.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -189,7 +173,7 @@ class GameControllerLifecycleTest {
 
     private void joinSession(String sessionId, String joinerUsername) {
         final UserDTO joinSessionRequestBody = new UserDTO(joinerUsername, "Spanish");
-        restTemplate.postForEntity(basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody, Object.class);
+        restTemplate.postForEntity(getBaseUrl() + "/" + sessionId + JOIN, joinSessionRequestBody, Object.class);
     }
 
     @Test
@@ -199,7 +183,7 @@ class GameControllerLifecycleTest {
         final UserDTO joinSessionRequestBody2 = new UserDTO("another person", "Spanish");
 
         final ResponseEntity<String> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + JOIN, joinSessionRequestBody2, String.class);
+                getBaseUrl() + "/" + sessionId + JOIN, joinSessionRequestBody2, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(res.getBody()).isEqualTo("Session already full, cannot join");
@@ -211,7 +195,7 @@ class GameControllerLifecycleTest {
         joinSession(sessionId, TEST_USERNAME2);
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + START, null, GameSessionDTO.class);
+                getBaseUrl() + "/" + sessionId + START, null, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getStatus()).isEqualTo("PLAYING");
@@ -223,14 +207,14 @@ class GameControllerLifecycleTest {
         String sessionId = createSession(TEST_USERNAME);
 
         final ResponseEntity<String> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + START, null, String.class);
+                getBaseUrl() + "/" + sessionId + START, null, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(res.getBody()).isEqualTo("Game not in READY state, cannot start");
     }
 
     private void startGame(String sessionId) {
-        restTemplate.postForEntity(basePath + port + SESSION + "/" + sessionId + START, null, GameSessionDTO.class);
+        restTemplate.postForEntity(getBaseUrl() + "/" + sessionId + START, null, GameSessionDTO.class);
     }
 
     private String prepareSessionAndStart() {
@@ -246,7 +230,7 @@ class GameControllerLifecycleTest {
         String approverUsername = TEST_USERNAME;
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + APPROVE, approverUsername, GameSessionDTO.class);
+                getBaseUrl() + "/" + sessionId + APPROVE, approverUsername, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getPlayer1().getPoints()).isEqualTo(0);
@@ -263,7 +247,7 @@ class GameControllerLifecycleTest {
         String approverUsername = TEST_USERNAME;
 
         final ResponseEntity<String> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + action, approverUsername, String.class);
+                getBaseUrl() + "/" + sessionId + action, approverUsername, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(res.getBody()).isEqualTo("Game not in PLAYING state, cannot perform operation");
@@ -275,7 +259,7 @@ class GameControllerLifecycleTest {
         String approverUsername = TEST_USERNAME;
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + FAIL, approverUsername, GameSessionDTO.class);
+                getBaseUrl() + "/" + sessionId + FAIL, approverUsername, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getPlayer1().getPoints()).isEqualTo(0);
@@ -289,7 +273,7 @@ class GameControllerLifecycleTest {
         String sessionId = prepareSessionAndStart();
 
         final ResponseEntity<GameSessionDTO> res = restTemplate.postForEntity(
-                basePath + port + SESSION + "/" + sessionId + END, null, GameSessionDTO.class);
+                getBaseUrl() + "/" + sessionId + END, null, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(res.getBody().getStatus()).isEqualTo("FINISHED");
