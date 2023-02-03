@@ -50,13 +50,13 @@ public class SessionHandler {
         return sessions.size();
     }
 
-    private GameSession getSession(String id) throws SessionNotFoundException {
-        return Optional.ofNullable(sessions.get(id))
-                .orElseThrow(() -> new SessionNotFoundException("Session with id " + id + " could not be found"));
-    }
-
     public GameSessionDTO retrieveSession(String id) throws SessionNotFoundException {
         return getSession(id).toDto();
+    }
+
+    public GameSession getSession(String id) throws SessionNotFoundException {
+        return Optional.ofNullable(sessions.get(id))
+                .orElseThrow(() -> new SessionNotFoundException("Session with id " + id + " could not be found"));
     }
 
     public GameSessionDTO tryJoinSession(UserDTO user, String sessionId) throws SessionNotFoundException {
