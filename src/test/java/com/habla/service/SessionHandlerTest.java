@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -308,4 +309,60 @@ class SessionHandlerTest {
         assertThat(exception.getMessage()).isEqualTo("Game not in PLAYING state, cannot perform operation");
     }
 
+    @Test
+    void getAllSessionIdsEmptyList() {
+        List<String> res = sessionHandler.getAllSessionIds();
+
+        assertThat(res.size()).isEqualTo(0);
+    }
+
+    @Test
+    void getAllSessionIdsReturned() throws InstantiationException {
+        String sessionId1 = createSession("player1", "player2");
+        String sessionId2 = createSession("player1", "player2");
+        String sessionId3 = createSession("player1", "player2");
+
+        List<String> res = sessionHandler.getAllSessionIds();
+
+        assertThat(res.size()).isEqualTo(3);
+        assertThat(res.contains(sessionId1)).isTrue();
+        assertThat(res.contains(sessionId2)).isTrue();
+        assertThat(res.contains(sessionId3)).isTrue();
+    }
+
+    @Test
+    void deleteAllSessionIds() throws InstantiationException {
+        String sessionId1 = createSession("player1", "player2");
+        String sessionId2 = createSession("player1", "player2");
+
+        List<String> deletedIds = sessionHandler.deleteAllSessions();
+        List<String> remainingIds = sessionHandler.getAllSessionIds();
+        int numActiveSessions = sessionHandler.numActiveSessions();
+
+        assertThat(deletedIds.size()).isEqualTo(2);
+        assertThat(deletedIds.contains(sessionId1)).isTrue();
+        assertThat(deletedIds.contains(sessionId2)).isTrue();
+        assertThat(numActiveSessions).isEqualTo(0);
+        assertThat(remainingIds.size()).isEqualTo(0);
+    }
+
+    @Test
+    void deleteSessionHappyPath() throws InstantiationException {
+        String sessionId1 = createSession("player1", "player2");
+        String sessionId2 = createSession("player1", "player2");
+
+        sessionHandler.deleteSession(sessionId2);
+
+        assertThat(sessionHandler.getSession(sessionId1)).isNotNull();
+        assertThat(sessionHandler.getAllSessionIds().contains(sessionId2)).isFalse();
+        assertThat(sessionHandler.numActiveSessions()).isEqualTo(1);
+    }
+
+    @Test
+    void deleteSessionNotFound() throws InstantiationException {
+        SessionNotFoundException exception = assertThrows(SessionNotFoundException.class,
+                () -> sessionHandler.deleteSession("BLABLA"));
+
+        assertThat(exception.getMessage()).isEqualTo("Session with id BLABLA not found, cannot delete");
+    }
 }
