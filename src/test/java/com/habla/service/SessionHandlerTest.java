@@ -266,8 +266,8 @@ class SessionHandlerTest {
         assertThat(res.getCurrentFlashCard().bothPassed()).isFalse();
         assertThat(res.getCurrentFlashCard().getPlayer1Passed()).isTrue();
         assertNull(res.getCurrentFlashCard().getPlayer2Passed());
-        assertThat(res.getPlayer1().getPoints()).isEqualTo(1);
-        assertThat(res.getPlayer2().getPoints()).isEqualTo(0);
+        assertThat(res.getPlayer1().getPoints()).isEqualTo(10);
+        assertThat(res.getPlayer2().getPoints()).isEqualTo(5);
     }
 
     @Test
@@ -359,7 +359,7 @@ class SessionHandlerTest {
     }
 
     @Test
-    void deleteSessionNotFound() throws InstantiationException {
+    void deleteSessionNotFound() {
         SessionNotFoundException exception = assertThrows(SessionNotFoundException.class,
                 () -> sessionHandler.deleteSession("BLABLA"));
 

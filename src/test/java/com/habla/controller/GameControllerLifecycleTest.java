@@ -233,8 +233,8 @@ class GameControllerLifecycleTest {
                 getBaseUrl() + "/" + sessionId + APPROVE, approverUsername, GameSessionDTO.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody().getPlayer1().getPoints()).isEqualTo(0);
-        assertThat(res.getBody().getPlayer2().getPoints()).isEqualTo(1);
+        assertThat(res.getBody().getPlayer1().getPoints()).isEqualTo(5);
+        assertThat(res.getBody().getPlayer2().getPoints()).isEqualTo(10);
         assertThat(res.getBody().getCurrentFlashCard().getPlayer2Passed()).isTrue();
         assertThat(res.getBody().getCurrentFlashCard().getPlayer1Passed()).isNull();
     }

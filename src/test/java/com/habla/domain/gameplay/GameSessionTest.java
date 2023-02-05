@@ -130,8 +130,8 @@ class GameSessionTest {
         assertThat(gameSession.getGameState().getCompleted().size()).isEqualTo(1);
         assertThat(gameSession.getGameState().getCompleted().get(0)).isEqualTo(originalFlashCard);
         assertThat(gameSession.getGameState().getCurrentFlashCard()).isNotEqualTo(originalFlashCard);
-        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(1L);
-        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(1L);
+        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(15L);
+        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(15L);
     }
 
     @Test
@@ -148,8 +148,8 @@ class GameSessionTest {
         assertThat(gameSession.getGameState().getRemainingWords().size()).isEqualTo(NUM_DESIRED_WORDS);
         assertThat(gameSession.getGameState().getCompleted().size()).isEqualTo(0);
         assertThat(gameSession.getGameState().getCurrentFlashCard()).isEqualTo(originalFlashCard);
-        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(0L);
-        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(1L);
+        assertThat(gameSession.getPlayer1().getPoints()).isEqualTo(5L);
+        assertThat(gameSession.getPlayer2().getPoints()).isEqualTo(10L);
     }
 
     @Test

@@ -70,11 +70,18 @@ public class GameSession {
     private GameSession updateCurrentFlashCard(String approverUsername, boolean opponentPassed) {
         if (Objects.equals(getPlayer1().getUsername(), approverUsername)) {
             gameState.setPlayer2CompletedWord(opponentPassed);
-            player2.addPoints(opponentPassed ? 1L : 0L);
+            return opponentPassed ? addCompletionPoints(player2, player1) : this;
         } else if (Objects.equals(getPlayer2().getUsername(), approverUsername)) {
             gameState.setPlayer1CompletedWord(opponentPassed);
-            player1.addPoints(opponentPassed ? 1L : 0L);
+            return opponentPassed ? addCompletionPoints(player1, player2) : this;
         }
+        return this;
+    }
+
+    private GameSession addCompletionPoints(Player approvedPlayer, Player approver) {
+        // Both player gets points to incentivise helping each other out
+        approvedPlayer.addPoints(10L);
+        approver.addPoints(5L);
         return this;
     }
 
