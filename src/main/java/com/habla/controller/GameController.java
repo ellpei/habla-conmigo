@@ -3,6 +3,8 @@ package com.habla.controller;
 import com.habla.response.GameSessionDTO;
 import com.habla.service.SessionHandler;
 import com.habla.exception.SessionNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +14,10 @@ import javax.validation.Valid;
 
 @RestController
 @RequestMapping("session")
+@CrossOrigin(origins = "*", methods = {RequestMethod.GET, RequestMethod.POST})
 public class GameController {
+    private Logger LOG = LoggerFactory.getLogger(GameController.class);
+
     @Autowired
     SessionHandler sessionHandler;
 
@@ -29,6 +34,7 @@ public class GameController {
     @PostMapping(path = "/create", consumes = "application/json", produces = "application/json")
     @ResponseBody
     public String createSession(@Valid @RequestBody UserDTO creator) {
+        LOG.info("Create session {}", creator);
         try {
             return sessionHandler.createSession(creator);
         } catch (InstantiationException exception) {
